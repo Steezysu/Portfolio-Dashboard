@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Outfit:wght@300;400;500;600;700&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #080b10; --bg2: #0e1219; --bg3: #151b26; --bg4: #1c2333;
+  --border: rgba(255,255,255,0.06); --border2: rgba(255,255,255,0.11); --border3: rgba(255,255,255,0.18);
+  --text: #dde2ee; --text2: #7b8299; --text3: #444d63;
+  --green: #00e5a0; --green-dim: rgba(0,229,160,0.12);
+  --red: #ff4d6d; --red-dim: rgba(255,77,109,0.12);
+  --blue: #4f8eff; --blue-dim: rgba(79,142,255,0.12);
+  --amber: #ffb547; --amber-dim: rgba(255,181,71,0.12);
+  --teal: #00d4e8; --teal-dim: rgba(0,212,232,0.12);
+  --purple: #9b7ff4;
+  --radius: 12px; --radius-sm: 7px;
+  --font: 'Outfit', sans-serif; --mono: 'DM Mono', monospace;
+}
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; min-height: 100vh; overflow-x: hidden; }
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.app { display: flex; flex-direction: column; min-height: 100vh; position: relative; z-index: 1; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; background: rgba(14,18,25,0.95); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 100; }
+.header-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.logo { display: flex; align-items: center; gap: 8px; }
+.logo-mark { width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, var(--green) 0%, #00b37a 100%); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #080b10; }
+.logo-text { font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.divider-v { width: 1px; height: 20px; background: var(--border2); }
+.status-pill { display: flex; align-items: center; gap: 6px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--text2); font-family: var(--mono); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+.status-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+.status-dot.loading { background: var(--amber); animation: pulse 1s infinite; }
+.status-dot.error { background: var(--red); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.fx-display { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.sync-indicator { font-size: 11px; font-family: var(--mono); color: var(--text3); }
+.sync-indicator.syncing { color: var(--amber); }
+.sync-indicator.synced { color: var(--green); }
+.sync-indicator.error { color: var(--red); }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.btn { display: inline-flex; align-items: center; gap: 5px; background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); border-radius: var(--radius-sm); padding: 7px 14px; font-family: var(--font); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.btn:hover { color: var(--text); border-color: var(--border3); background: var(--bg4); }
+.btn-green { background: var(--green); color: #080b10; border-color: var(--green); font-weight: 600; }
+.btn-green:hover { background: #00cc8e; border-color: #00cc8e; color: #080b10; }
+.btn-ghost { background: transparent; border-color: transparent; }
+.btn-ghost:hover { background: var(--bg3); border-color: var(--border); }
+.btn-danger { background: var(--red-dim); color: var(--red); border-color: rgba(255,77,109,0.25); }
+.btn-danger:hover { background: rgba(255,77,109,0.2); }
+.btn-sm { padding: 4px 10px; font-size: 11px; border-radius: 5px; }
+.main { display: flex; flex: 1; }
+.sidebar { width: 210px; min-width: 210px; background: var(--bg2); border-right: 1px solid var(--border); padding: 24px 12px; display: flex; flex-direction: column; gap: 2px; }
+.nav-section { font-size: 9px; color: var(--text3); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; padding: 10px 10px 5px; margin-top: 8px; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text2); font-size: 13px; font-weight: 500; transition: all 0.12s; position: relative; }
+.nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.nav-item.active { background: var(--green-dim); color: var(--green); }
+.nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 2px; height: 16px; background: var(--green); border-radius: 0 2px 2px 0; }
+.nav-icon { font-size: 15px; width: 18px; text-align: center; }
+.nav-badge { margin-left: auto; background: var(--bg4); border: 1px solid var(--border2); border-radius: 10px; padding: 1px 7px; font-size: 10px; font-family: var(--mono); color: var(--text3); }
+.nav-item.active .nav-badge { background: var(--green-dim); color: var(--green); border-color: rgba(0,229,160,0.2); }
+.content { flex: 1; padding: 28px; overflow-x: hidden; min-width: 0; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; position: relative; overflow: hidden; transition: border-color 0.15s; }
+.stat-card:hover { border-color: var(--border2); }
+.stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent); }
+.stat-label { font-size: 10px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; margin-bottom: 8px; }
+.stat-value { font-size: 24px; font-weight: 700; color: var(--text); font-family: var(--mono); line-height: 1; margin-bottom: 6px; }
+.stat-sub { font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 5px; }
+.pill { display: inline-flex; align-items: center; gap: 3px; border-radius: 5px; padding: 2px 8px; font-size: 11px; font-weight: 600; font-family: var(--mono); white-space: nowrap; }
+.pill-green { background: var(--green-dim); color: var(--green); }
+.pill-red { background: var(--red-dim); color: var(--red); }
+.pill-blue { background: var(--blue-dim); color: var(--blue); }
+.pill-teal { background: var(--teal-dim); color: var(--teal); }
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
+.chart-title { font-size: 11px; color: var(--text2); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); font-family: var(--mono); }
+.legend-swatch { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-title { font-size: 11px; font-weight: 600; color: var(--text2); letter-spacing: 0.1em; text-transform: uppercase; }
+.table-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { padding: 10px 16px; text-align: left; font-size: 9px; color: var(--text3); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.01); cursor: pointer; user-select: none; white-space: nowrap; }
+th:hover { color: var(--text2); }
+td { padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,0.035); color: var(--text); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.018); }
+.td-right { text-align: right; }
+.mono { font-family: var(--mono); }
+.ticker-chip { background: var(--bg3); border: 1px solid var(--border2); border-radius: 5px; padding: 3px 8px; font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text); letter-spacing: 0.03em; }
+.tag { border-radius: 5px; padding: 2px 8px; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; white-space: nowrap; }
+.group-row { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); background: rgba(255,255,255,0.015); border-bottom: 1px solid var(--border); }
+.tab-bar { display: flex; gap: 3px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; }
+.tab { padding: 6px 16px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text3); transition: all 0.12s; white-space: nowrap; }
+.tab:hover { color: var(--text2); }
+.tab.active { background: var(--bg4); color: var(--text); border: 1px solid var(--border2); }
+.liab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.liab-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
+.liab-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+.liab-amount { font-size: 28px; font-weight: 700; color: var(--red); font-family: var(--mono); margin-bottom: 6px; }
+.liab-meta { font-size: 11px; color: var(--text3); }
+.history-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 20px; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.15s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; padding: 28px; width: 460px; max-width: 95vw; max-height: 90vh; overflow-y: auto; animation: slideUp 0.15s ease; }
+@keyframes slideUp { from{transform:translateY(12px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-title { font-size: 17px; font-weight: 700; margin-bottom: 22px; color: var(--text); }
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 10px; color: var(--text2); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; display: block; }
+.form-input, .form-select { width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 9px 13px; color: var(--text); font-family: var(--font); font-size: 13px; transition: border-color 0.15s; appearance: none; }
+.form-input:focus, .form-select:focus { outline: none; border-color: var(--green); }
+.form-hint { font-size: 10px; color: var(--text3); margin-top: 4px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+.toast { position: fixed; bottom: 24px; right: 24px; z-index: 300; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 12px 18px; font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 8px; animation: toastIn 0.2s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+@keyframes toastIn { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
+.empty-state { text-align: center; padding: 56px 24px; color: var(--text3); }
+.empty-state .icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+.empty-state p { font-size: 13px; }
+.loading-screen { display: flex; align-items: center; justify-content: center; height: 100vh; color: var(--text2); font-size: 14px; gap: 10px; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app" id="root"></div>
+<script>
+// ─── CONFIG ───
+const SUPABASE_URL = 'https://kaadultjxmrmnvtnsyqa.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImthYWR1bHRqeG1ybW52dG5zeXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODYxNjAsImV4cCI6MjA5NTc2MjE2MH0.TxT5K_1umknc_LEBwEpYmg8MZbP-wwlrpb0gbKvVhKQ';
+const TWELVE_KEY = 'c39386dcef30408bb2934866823786a2';
+
+// ─── SUPABASE HELPERS ───
+async function dbGet(table) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  if (!r.ok) throw new Error(`GET ${table} failed: ${r.status}`);
+  return r.json();
+}
+
+async function dbInsert(table, row) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    body: JSON.stringify(row)
+  });
+  if (!r.ok) { const t = await r.text(); throw new Error(`INSERT ${table} failed: ${t}`); }
+}
+
+async function dbUpdate(table, id, row) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    body: JSON.stringify(row)
+  });
+  if (!r.ok) { const t = await r.text(); throw new Error(`UPDATE ${table} failed: ${t}`); }
+}
+
+async function dbDelete(table, id) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  if (!r.ok) throw new Error(`DELETE ${table} failed: ${r.status}`);
+}
+
+async function dbUpsert(table, row) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(row)
+  });
+  if (!r.ok) { const t = await r.text(); throw new Error(`UPSERT ${table} failed: ${t}`); }
+}
+
+// ─── CONSTANTS ───
+const PLATFORMS = ['Sharesies','Stake','Vanguard','CMC Markets','Bank Accounts','Betashares','Binance','Other'];
+const PLATFORM_COLORS = {
+  'Sharesies':    { bg:'rgba(79,142,255,0.15)',  color:'#4f8eff' },
+  'Stake':        { bg:'rgba(155,127,244,0.15)', color:'#9b7ff4' },
+  'Vanguard':     { bg:'rgba(0,229,160,0.15)',   color:'#00e5a0' },
+  'CMC Markets':  { bg:'rgba(255,181,71,0.15)',  color:'#ffb547' },
+  'Bank Accounts':{ bg:'rgba(0,212,232,0.15)',   color:'#00d4e8' },
+  'Betashares':   { bg:'rgba(250,204,21,0.15)',  color:'#facc15' },
+  'Binance':      { bg:'rgba(255,77,109,0.15)',  color:'#ff4d6d' },
+  'Other':        { bg:'rgba(123,130,153,0.15)', color:'#7b8299' },
+};
+const ASSET_COLORS = {
+  'Stock':  { bg:'rgba(79,142,255,0.15)',  color:'#4f8eff' },
+  'ETF':    { bg:'rgba(0,229,160,0.15)',   color:'#00e5a0' },
+  'Crypto': { bg:'rgba(255,181,71,0.15)',  color:'#ffb547' },
+  'Cash':   { bg:'rgba(0,212,232,0.15)',   color:'#00d4e8' },
+};
+const CHART_COLORS = ['#4f8eff','#00e5a0','#9b7ff4','#ffb547','#ff4d6d','#00d4e8','#facc15','#f472b6','#34d399','#fb923c'];
+
+// ─── STATE ───
+let state = { holdings: [], liabilities: [], snapshots: [], loaded: false };
+let prices = {};
+let fx = { USDAUD: 1.55, NZDAUD: 0.91 };
+let priceStatus = 'idle';
+let syncStatus = '';
+let activeView = 'overview';
+let activeGrouping = 'asset';
+let modal = null;
+let charts = {};
+let sortCol = null, sortDir = -1;
+
+// ─── LOAD ───
+async function loadAll() {
+  try {
+    const [holdings, liabilities, snapshots] = await Promise.all([
+      dbGet('holdings'),
+      dbGet('liabilities'),
+      dbGet('snapshots'),
+    ]);
+    state.holdings = holdings;
+    state.liabilities = liabilities;
+    if (state.liabilities.length === 0) {
+      await dbInsert('liabilities', { id: 'sl1', name: 'Student Loan', balance: 0, currency: 'NZD', type: 'student_loan', min_payment: 0, note: 'Interest-free (NZ)' });
+      await dbInsert('liabilities', { id: 'cc1', name: 'Credit Card', balance: 0, currency: 'AUD', type: 'credit_card', min_payment: 0, note: '' });
+      state.liabilities = await dbGet('liabilities');
+    }
+    state.snapshots = snapshots;
+    state.loaded = true;
+  } catch(e) {
+    console.error('Load failed:', e);
+    state.loaded = true;
+    showToast('⚠️ Could not load from Supabase: ' + e.message, 5000);
+  }
+}
+
+// ─── SYNC STATUS ───
+function setSyncStatus(s) {
+  syncStatus = s;
+  const el = document.getElementById('sync-status');
+  if (el) {
+    el.className = 'sync-indicator ' + s;
+    el.textContent = s === 'syncing' ? '⟳ Syncing…' : s === 'synced' ? '✓ Synced' : s === 'error' ? '✗ Sync failed' : '';
+  }
+  if (s === 'synced') setTimeout(() => { syncStatus = ''; const e2 = document.getElementById('sync-status'); if (e2) e2.textContent = ''; }, 2500);
+}
+
+// ─── TWELVE DATA PRICES ───
+async function fetchPrice(symbol) {
+  try {
+    const r = await fetch(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(symbol)}&apikey=${TWELVE_KEY}`);
+    const d = await r.json();
+    return d.price ? parseFloat(d.price) : null;
+  } catch(e) { return null; }
+}
+
+async function refreshPrices() {
+  priceStatus = 'loading'; render();
+  try {
+    const [audUsd, nzdUsd] = await Promise.all([fetchPrice('AUD/USD'), fetchPrice('NZD/USD')]);
+    if (audUsd) fx.USDAUD = 1 / audUsd;
+    if (nzdUsd && audUsd) fx.NZDAUD = nzdUsd / audUsd;
+  } catch(e) {}
+
+  const tickers = [...new Set(state.holdings.filter(h => h.type !== 'Cash' && h.ticker).map(h => h.ticker))];
+  if (tickers.length > 0) {
+    try {
+      const batch = tickers.join(',');
+      const r = await fetch(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(batch)}&apikey=${TWELVE_KEY}`);
+      const data = await r.json();
+      if (tickers.length === 1) {
+        if (data.price) prices[tickers[0]] = parseFloat(data.price);
+      } else {
+        tickers.forEach(t => { if (data[t] && data[t].price) prices[t] = parseFloat(data[t].price); });
+      }
+      priceStatus = Object.keys(prices).length > 0 ? 'live' : 'error';
+    } catch(e) { priceStatus = 'error'; }
+  } else {
+    priceStatus = 'live';
+  }
+  render();
+}
+
+// ─── CALCULATIONS ───
+function toAUD(amount, currency) {
+  if (currency === 'AUD') return amount;
+  if (currency === 'USD') return amount * fx.USDAUD;
+  if (currency === 'NZD') return amount * fx.NZDAUD;
+  return amount;
+}
+
+function getVal(h) {
+  if (h.type === 'Cash') return { price: h.units, valueAUD: toAUD(h.units, h.currency), hasPrice: true };
+  const p = prices[h.ticker];
+  if (p === undefined) return { price: null, valueAUD: null, hasPrice: false };
+  return { price: p, valueAUD: toAUD(p * h.units, h.currency), hasPrice: true };
+}
+
+function getGL(h) {
+  const { valueAUD, hasPrice } = getVal(h);
+  if (!hasPrice || valueAUD === null) return { gl: null, glPct: null };
+  const cost = toAUD((h.cost_basis || 0) * h.units, h.currency);
+  return { gl: valueAUD - cost, glPct: cost > 0 ? ((valueAUD - cost) / cost) * 100 : 0 };
+}
+
+function getTotals() {
+  let assets = 0;
+  state.holdings.forEach(h => { const { valueAUD } = getVal(h); if (valueAUD !== null) assets += valueAUD; });
+  const liabilities = state.liabilities.reduce((s, l) => s + toAUD(l.balance || 0, l.currency), 0);
+  return { assets, liabilities };
+}
+
+// ─── FORMATTERS ───
+function fmt(n, d = 2) { if (n === null || n === undefined || isNaN(n)) return '—'; return n.toLocaleString('en-AU', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+function fmtAUD(n) { if (n === null || isNaN(n)) return '—'; return 'A$' + fmt(n); }
+function fmtPct(n) { if (n === null || isNaN(n)) return '—'; return (n >= 0 ? '+' : '') + fmt(n, 1) + '%'; }
+
+// ─── TOAST ───
+function showToast(msg, duration = 2500) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { if (t.parentNode) t.remove(); }, duration);
+}
+
+// ─── RENDER ───
+function render() {
+  document.getElementById('root').innerHTML = buildApp();
+  buildCharts();
+}
+
+function buildApp() {
+  if (!state.loaded) return `<div class="loading-screen"><span style="animation:pulse 1s infinite">⟳</span> Loading from Supabase…</div>`;
+  const { assets, liabilities } = getTotals();
+  return `
+    <div class="header">
+      <div class="header-left">
+        <div class="logo"><div class="logo-mark">P</div><span class="logo-text">Portfolio</span></div>
+        <div class="divider-v"></div>
+        <div class="status-pill">
+          <div class="status-dot ${priceStatus === 'live' ? 'live' : priceStatus === 'loading' ? 'loading' : priceStatus === 'error' ? 'error' : ''}"></div>
+          <span>${priceStatus === 'live' ? 'Live' : priceStatus === 'loading' ? 'Fetching…' : priceStatus === 'error' ? 'Unavailable' : 'Not fetched'}</span>
+        </div>
+        <span class="fx-display">USD→AUD ${fmt(fx.USDAUD,4)} · NZD→AUD ${fmt(fx.NZDAUD,4)}</span>
+        <span id="sync-status" class="sync-indicator ${syncStatus}">${syncStatus === 'syncing' ? '⟳ Syncing…' : syncStatus === 'synced' ? '✓ Synced' : syncStatus === 'error' ? '✗ Sync failed' : ''}</span>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-ghost" onclick="app_refresh()">↻ Refresh</button>
+        <button class="btn btn-green" onclick="app_openAdd()">+ Add Holding</button>
+      </div>
+    </div>
+    <div class="main">
+      <div class="sidebar">
+        <div class="nav-section">Dashboard</div>
+        ${nav('overview','◈','Overview')}
+        ${nav('holdings','◫','Holdings', state.holdings.length)}
+        ${nav('liabilities','◉','Liabilities', state.liabilities.length)}
+        ${nav('history','◷','History', state.snapshots.length)}
+        <div class="nav-section" style="margin-top:12px">Actions</div>
+        <div class="nav-item" onclick="app_openAdd()"><span class="nav-icon">+</span>Add Holding</div>
+        <div class="nav-item" onclick="app_openEditLiab()"><span class="nav-icon">✎</span>Edit Liabilities</div>
+        <div class="nav-item" onclick="app_takeSnapshot()"><span class="nav-icon">◎</span>Take Snapshot</div>
+      </div>
+      <div class="content">
+        ${activeView === 'overview' ? buildOverview(assets, liabilities) : ''}
+        ${activeView === 'holdings' ? buildHoldingsView() : ''}
+        ${activeView === 'liabilities' ? buildLiabView(liabilities) : ''}
+        ${activeView === 'history' ? buildHistoryView() : ''}
+      </div>
+    </div>
+    ${modal ? buildModal() : ''}
+  `;
+}
+
+function nav(view, icon, label, badge) {
+  return `<div class="nav-item ${activeView === view ? 'active' : ''}" onclick="app_setView('${view}')">
+    <span class="nav-icon">${icon}</span>${label}
+    ${badge !== undefined ? `<span class="nav-badge">${badge}</span>` : ''}
+  </div>`;
+}
+
+function buildOverview(assets, liabilities) {
+  let glTotal = 0, costTotal = 0;
+  state.holdings.forEach(h => {
+    const { valueAUD } = getVal(h);
+    if (valueAUD !== null) { glTotal += valueAUD; costTotal += toAUD((h.cost_basis || 0) * h.units, h.currency); }
+  });
+  const gl = glTotal - costTotal, glPct = costTotal > 0 ? (gl / costTotal) * 100 : 0;
+  return `
+    <div class="summary-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Assets</div>
+        <div class="stat-value">${fmtAUD(assets)}</div>
+        <div class="stat-sub"><span class="pill ${gl >= 0 ? 'pill-green' : 'pill-red'}">${fmtPct(glPct)}</span> unrealised</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Liabilities</div>
+        <div class="stat-value" style="color:var(--red)">${fmtAUD(liabilities)}</div>
+        <div class="stat-sub">${state.liabilities.length} item${state.liabilities.length !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Unrealised G/L</div>
+        <div class="stat-value" style="color:${gl >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtAUD(gl)}</div>
+        <div class="stat-sub"><span class="pill ${gl >= 0 ? 'pill-green' : 'pill-red'}">${fmtPct(glPct)}</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Holdings</div>
+        <div class="stat-value">${state.holdings.length}</div>
+        <div class="stat-sub">${[...new Set(state.holdings.map(h => h.platform))].length} platforms</div>
+      </div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">By Asset Class</div>
+        <div id="leg-asset" class="chart-legend"></div>
+        <div style="position:relative;height:190px"><canvas id="c-asset"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">By Platform</div>
+        <div id="leg-platform" class="chart-legend"></div>
+        <div style="position:relative;height:190px"><canvas id="c-platform"></canvas></div>
+      </div>
+    </div>
+    <div class="section-header"><span class="section-title">All Holdings</span></div>
+    ${buildTable(state.holdings, 'asset')}
+  `;
+}
+
+function buildHoldingsView() {
+  return `
+    <div class="section-header">
+      <span class="section-title">Holdings</span>
+      <div class="tab-bar">
+        ${['asset','platform','all'].map(g => `<div class="tab ${activeGrouping === g ? 'active' : ''}" onclick="app_setGrouping('${g}')">${g === 'asset' ? 'By Asset' : g === 'platform' ? 'By Platform' : 'All'}</div>`).join('')}
+      </div>
+    </div>
+    ${buildTable(state.holdings, activeGrouping)}
+  `;
+}
+
+function buildTable(holdings, grouping) {
+  if (!holdings.length) return `<div class="empty-state"><div class="icon">📊</div><p>No holdings yet. Add your first holding above.</p></div>`;
+  const sorted = [...holdings].sort((a, b) => {
+    if (!sortCol) return 0;
+    let av = a[sortCol], bv = b[sortCol];
+    if (sortCol === 'valueAUD') { av = getVal(a).valueAUD ?? -Infinity; bv = getVal(b).valueAUD ?? -Infinity; }
+    if (sortCol === 'gl') { av = getGL(a).gl ?? -Infinity; bv = getGL(b).gl ?? -Infinity; }
+    if (typeof av === 'string') return av.localeCompare(bv) * sortDir;
+    return (av - bv) * sortDir;
+  });
+  const grouped = {};
+  if (grouping === 'asset' || grouping === 'platform') {
+    const key = grouping === 'asset' ? 'type' : 'platform';
+    sorted.forEach(h => { const k = h[key] || 'Other'; if (!grouped[k]) grouped[k] = []; grouped[k].push(h); });
+  } else { grouped[''] = sorted; }
+
+  const th = (col, label) => `<th onclick="app_sort('${col}')">${label}${sortCol === col ? (sortDir === 1 ? ' ↑' : ' ↓') : ''}</th>`;
+  let rows = '';
+  Object.entries(grouped).forEach(([group, items]) => {
+    if (group) {
+      const gt = items.reduce((s, h) => { const { valueAUD } = getVal(h); return s + (valueAUD || 0); }, 0);
+      rows += `<tr><td colspan="10" class="group-row" style="padding:8px 16px">${group} <span style="color:var(--text2);font-family:var(--mono);font-weight:400;margin-left:6px">${fmtAUD(gt)}</span></td></tr>`;
+    }
+    items.forEach(h => {
+      const { price, valueAUD, hasPrice } = getVal(h);
+      const { gl, glPct } = getGL(h);
+      const pc = PLATFORM_COLORS[h.platform] || PLATFORM_COLORS['Other'];
+      const ac = ASSET_COLORS[h.type] || { bg:'rgba(123,130,153,0.15)', color:'#7b8299' };
+      rows += `<tr>
+        <td><span class="ticker-chip">${h.ticker || 'CASH'}</span></td>
+        <td style="color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.name || ''}</td>
+        <td><span class="tag" style="background:${ac.bg};color:${ac.color}">${h.type}</span></td>
+        <td><span class="tag" style="background:${pc.bg};color:${pc.color}">${h.platform}</span></td>
+        <td class="td-right mono">${fmt(h.units, h.type === 'Crypto' ? 6 : 2)}</td>
+        <td class="td-right mono">${hasPrice ? (h.type === 'Cash' ? '—' : fmt(price, 2) + ' ' + h.currency) : '<span style="color:var(--text3);font-size:11px">loading…</span>'}</td>
+        <td class="td-right mono">${hasPrice && valueAUD !== null ? fmtAUD(valueAUD) : '—'}</td>
+        <td class="td-right mono" style="color:${gl === null ? 'var(--text3)' : gl >= 0 ? 'var(--green)' : 'var(--red)'}">${gl !== null ? fmtAUD(gl) : '—'}</td>
+        <td class="td-right"><span class="pill ${glPct === null ? '' : glPct >= 0 ? 'pill-green' : 'pill-red'}">${fmtPct(glPct)}</span></td>
+        <td class="td-right" style="white-space:nowrap">
+          <button class="btn btn-sm" onclick="app_openEdit('${h.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="app_deleteHolding('${h.id}')" style="margin-left:4px">✕</button>
+        </td>
+      </tr>`;
+    });
+  });
+  return `<div class="table-wrap"><table>
+    <thead><tr>${th('ticker','Ticker')}${th('name','Name')}${th('type','Type')}${th('platform','Platform')}${th('units','Units')}<th>Price</th>${th('valueAUD','Value (AUD)')}${th('gl','G/L (AUD)')}<th>G/L %</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function buildLiabView(totalLiab) {
+  return `
+    <div class="section-header"><span class="section-title">Liabilities</span><button class="btn" onclick="app_openEditLiab()">✎ Edit</button></div>
+    <div class="summary-grid" style="margin-bottom:20px">
+      <div class="stat-card"><div class="stat-label">Total Liabilities</div><div class="stat-value" style="color:var(--red)">${fmtAUD(totalLiab)}</div></div>
+    </div>
+    <div class="liab-grid">
+      ${state.liabilities.map(l => {
+        const aud = toAUD(l.balance || 0, l.currency);
+        return `<div class="liab-card">
+          <div class="liab-name">${l.name}${l.type === 'student_loan' ? '<span class="pill pill-teal">Interest-free</span>' : ''}</div>
+          <div class="liab-amount">${fmtAUD(aud)}</div>
+          ${l.currency !== 'AUD' ? `<div class="liab-meta">${fmt(l.balance, 2)} ${l.currency}</div>` : ''}
+          ${l.min_payment ? `<div class="liab-meta" style="margin-top:6px">Min payment: ${fmtAUD(toAUD(l.min_payment, l.currency))}/mo</div>` : ''}
+          ${l.note ? `<div class="liab-meta" style="margin-top:4px">${l.note}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function buildHistoryView() {
+  const snaps = [...state.snapshots].sort((a, b) => new Date(a.date) - new Date(b.date));
+  return `
+    <div class="section-header">
+      <span class="section-title">Asset & Liability Tracker</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="app_openAddSnap()">+ Add Data Point</button>
+        <button class="btn btn-green" onclick="app_takeSnapshot()">◎ Snapshot Now</button>
+      </div>
+    </div>
+    <div class="history-card">
+      <div class="chart-title">Portfolio Over Time</div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#00e5a0"></div>Assets (AUD)</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#ff4d6d"></div>Liabilities (AUD)</div>
+      </div>
+      <div style="position:relative;height:280px"><canvas id="c-history"></canvas></div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th class="td-right">Assets (AUD)</th><th class="td-right">Liabilities (AUD)</th><th class="td-right">Net</th><th></th></tr></thead>
+      <tbody>
+        ${!snaps.length ? '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text3)">No snapshots yet. Take your first snapshot above.</td></tr>' : ''}
+        ${[...snaps].reverse().map(s => `<tr>
+          <td class="mono">${s.date}</td>
+          <td class="td-right mono" style="color:var(--green)">${fmtAUD(s.assets)}</td>
+          <td class="td-right mono" style="color:var(--red)">${fmtAUD(s.liabilities)}</td>
+          <td class="td-right mono" style="color:${s.assets - s.liabilities >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtAUD(s.assets - s.liabilities)}</td>
+          <td class="td-right"><button class="btn btn-sm btn-danger" onclick="app_deleteSnapshot('${s.id}')">✕</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>
+  `;
+}
+
+function buildModal() {
+  if (modal.type === 'holding') {
+    const h = modal.data || {};
+    const isEdit = !!h.id;
+    return `<div class="overlay" onclick="if(event.target===this)app_closeModal()"><div class="modal">
+      <div class="modal-title">${isEdit ? 'Edit Holding' : 'Add Holding'}</div>
+      <div class="form-group"><label class="form-label">Asset Type</label>
+        <select class="form-select" id="f-type">${['Stock','ETF','Crypto','Cash'].map(t => `<option ${h.type===t?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Ticker</label>
+          <input class="form-input" id="f-ticker" value="${h.ticker||''}" placeholder="e.g. AAPL, BTC/USD"/>
+          <div class="form-hint">Twelve Data format · ASX: CBA.ASX · Crypto: BTC/USD</div>
+        </div>
+        <div class="form-group"><label class="form-label">Name</label>
+          <input class="form-input" id="f-name" value="${h.name||''}" placeholder="e.g. Apple Inc."/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Units</label>
+          <input class="form-input" id="f-units" type="number" step="any" value="${h.units||''}"/>
+        </div>
+        <div class="form-group"><label class="form-label">Cost Basis / Unit</label>
+          <input class="form-input" id="f-cost" type="number" step="any" value="${h.cost_basis||''}" placeholder="0.00"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Currency</label>
+          <select class="form-select" id="f-currency">${['AUD','USD','NZD'].map(c => `<option ${h.currency===c?'selected':''}>${c}</option>`).join('')}</select>
+        </div>
+        <div class="form-group"><label class="form-label">Platform</label>
+          <select class="form-select" id="f-platform">${PLATFORMS.map(p => `<option ${h.platform===p?'selected':''}>${p}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="app_closeModal()">Cancel</button>
+        <button class="btn btn-green" onclick="app_saveHolding('${h.id||''}')">${isEdit ? 'Save Changes' : 'Add Holding'}</button>
+      </div>
+    </div></div>`;
+  }
+
+  if (modal.type === 'liabilities') {
+    return `<div class="overlay" onclick="if(event.target===this)app_closeModal()"><div class="modal">
+      <div class="modal-title">Edit Liabilities</div>
+      ${state.liabilities.map(l => `
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)">${l.name}</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Balance</label>
+              <input class="form-input" id="lb-${l.id}" type="number" step="any" value="${l.balance||0}"/>
+            </div>
+            <div class="form-group"><label class="form-label">Currency</label>
+              <select class="form-select" id="lc-${l.id}">${['AUD','USD','NZD'].map(c => `<option ${l.currency===c?'selected':''}>${c}</option>`).join('')}</select>
+            </div>
+          </div>
+          ${l.type === 'credit_card' ? `<div class="form-group"><label class="form-label">Min Monthly Payment</label><input class="form-input" id="lm-${l.id}" type="number" step="any" value="${l.min_payment||0}"/></div>` : ''}
+        </div>`).join('')}
+      <div class="modal-footer">
+        <button class="btn" onclick="app_closeModal()">Cancel</button>
+        <button class="btn btn-green" onclick="app_saveLiab()">Save</button>
+      </div>
+    </div></div>`;
+  }
+
+  if (modal.type === 'snapshot') {
+    return `<div class="overlay" onclick="if(event.target===this)app_closeModal()"><div class="modal">
+      <div class="modal-title">Add Historical Data Point</div>
+      <div class="form-group"><label class="form-label">Date</label>
+        <input class="form-input" id="s-date" type="date" value="${new Date().toISOString().split('T')[0]}"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Total Assets (AUD)</label>
+          <input class="form-input" id="s-assets" type="number" step="any" placeholder="0.00"/>
+        </div>
+        <div class="form-group"><label class="form-label">Total Liabilities (AUD)</label>
+          <input class="form-input" id="s-liab" type="number" step="any" placeholder="0.00"/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="app_closeModal()">Cancel</button>
+        <button class="btn btn-green" onclick="app_saveSnap()">Add</button>
+      </div>
+    </div></div>`;
+  }
+  return '';
+}
+
+// ─── CHARTS ───
+function buildCharts() {
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e) {} });
+  charts = {};
+  if (activeView === 'overview' || activeView === 'holdings') {
+    buildDonut('c-asset', 'leg-asset', 'type', ASSET_COLORS);
+    buildDonut('c-platform', 'leg-platform', 'platform', PLATFORM_COLORS);
+  }
+  if (activeView === 'history') buildHistoryChart();
+}
+
+function buildDonut(canvasId, legendId, key, colorMap) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const groups = {};
+  state.holdings.forEach(h => {
+    const k = h[key] || 'Other';
+    const { valueAUD } = getVal(h);
+    if (valueAUD !== null) groups[k] = (groups[k] || 0) + valueAUD;
+  });
+  const labels = Object.keys(groups), data = Object.values(groups);
+  const total = data.reduce((s, v) => s + v, 0);
+  const colors = labels.map((l, i) => (colorMap[l] || { color: CHART_COLORS[i % CHART_COLORS.length] }).color);
+  const legend = document.getElementById(legendId);
+  if (legend) legend.innerHTML = labels.map((l, i) => `<div class="legend-item"><div class="legend-swatch" style="background:${colors[i]}"></div>${l} <span style="color:var(--text3)">${total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0}%</span></div>`).join('');
+  if (!labels.length) return;
+  charts[canvasId] = new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors.map(c => c + 'bb'), borderColor: colors.map(c => c + 'dd'), borderWidth: 1.5, hoverOffset: 8 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmtAUD(ctx.raw)} (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)` } } } }
+  });
+}
+
+function buildHistoryChart() {
+  const canvas = document.getElementById('c-history');
+  if (!canvas) return;
+  const snaps = [...state.snapshots].sort((a, b) => new Date(a.date) - new Date(b.date));
+  if (!snaps.length) return;
+  charts['history'] = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: snaps.map(s => s.date),
+      datasets: [
+        { label: 'Assets', data: snaps.map(s => s.assets), borderColor: '#00e5a0', backgroundColor: 'rgba(0,229,160,0.06)', tension: 0.4, fill: true, pointRadius: 5, pointBackgroundColor: '#00e5a0', pointBorderColor: '#080b10', pointBorderWidth: 2 },
+        { label: 'Liabilities', data: snaps.map(s => s.liabilities), borderColor: '#ff4d6d', backgroundColor: 'rgba(255,77,109,0.06)', tension: 0.4, fill: true, pointRadius: 5, pointBackgroundColor: '#ff4d6d', pointBorderColor: '#080b10', pointBorderWidth: 2, borderDash: [6,3] }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtAUD(ctx.raw)}` } } },
+      scales: {
+        x: { ticks: { color: '#444d63', font: { size: 11, family: "'DM Mono'" } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+        y: { ticks: { color: '#444d63', font: { size: 11, family: "'DM Mono'" }, callback: v => 'A$' + (v >= 1000 ? Math.round(v/1000)+'k' : Math.round(v)) }, grid: { color: 'rgba(255,255,255,0.03)' } }
+      }
+    }
+  });
+}
+
+// ─── HANDLERS ───
+window.app_setView = v => { activeView = v; render(); };
+window.app_setGrouping = g => { activeGrouping = g; render(); };
+window.app_sort = col => { if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = -1; } render(); };
+window.app_closeModal = () => { modal = null; render(); };
+window.app_refresh = () => refreshPrices();
+window.app_openAdd = () => { modal = { type: 'holding', data: {} }; render(); };
+window.app_openEdit = id => { modal = { type: 'holding', data: { ...state.holdings.find(h => h.id == id) } }; render(); };
+window.app_openEditLiab = () => { modal = { type: 'liabilities' }; render(); };
+window.app_openAddSnap = () => { modal = { type: 'snapshot' }; render(); };
+
+window.app_saveHolding = async (existingId) => {
+  const type = document.getElementById('f-type').value;
+  const ticker = document.getElementById('f-ticker').value.trim().toUpperCase();
+  const name = document.getElementById('f-name').value.trim();
+  const units = parseFloat(document.getElementById('f-units').value) || 0;
+  const cost_basis = parseFloat(document.getElementById('f-cost').value) || 0;
+  const currency = document.getElementById('f-currency').value;
+  const platform = document.getElementById('f-platform').value;
+  if (!units) { showToast('Please enter a unit quantity'); return; }
+  setSyncStatus('syncing');
+  try {
+    if (existingId) {
+      await dbUpdate('holdings', existingId, { type, ticker, name, units, cost_basis, currency, platform });
+      const idx = state.holdings.findIndex(h => h.id == existingId);
+      if (idx >= 0) state.holdings[idx] = { ...state.holdings[idx], type, ticker, name, units, cost_basis, currency, platform };
+    } else {
+      const id = String(Date.now());
+      const row = { id, type, ticker, name, units, cost_basis, currency, platform };
+      await dbInsert('holdings', row);
+      state.holdings.push(row);
+    }
+    setSyncStatus('synced');
+    showToast('✓ Holding saved');
+  } catch(e) { setSyncStatus('error'); showToast('⚠️ Save failed: ' + e.message, 4000); }
+  modal = null; render();
+  if (ticker && type !== 'Cash') refreshPrices();
+};
+
+window.app_deleteHolding = async (id) => {
+  setSyncStatus('syncing');
+  try {
+    await dbDelete('holdings', id);
+    state.holdings = state.holdings.filter(h => h.id != id);
+    setSyncStatus('synced');
+    showToast('✓ Holding deleted');
+  } catch(e) { setSyncStatus('error'); showToast('⚠️ Delete failed: ' + e.message, 4000); }
+  render();
+};
+
+window.app_saveLiab = async () => {
+  setSyncStatus('syncing');
+  try {
+    for (const l of state.liabilities) {
+      const b = document.getElementById(`lb-${l.id}`);
+      const c = document.getElementById(`lc-${l.id}`);
+      const m = document.getElementById(`lm-${l.id}`);
+      const balance = b ? parseFloat(b.value) || 0 : l.balance;
+      const currency = c ? c.value : l.currency;
+      const min_payment = m ? parseFloat(m.value) || 0 : l.min_payment;
+      await dbUpdate('liabilities', l.id, { balance, currency, min_payment });
+      l.balance = balance; l.currency = currency; l.min_payment = min_payment;
+    }
+    setSyncStatus('synced');
+    showToast('✓ Liabilities saved');
+  } catch(e) { setSyncStatus('error'); showToast('⚠️ Save failed: ' + e.message, 4000); }
+  modal = null; render();
+};
+
+window.app_takeSnapshot = async () => {
+  const { assets, liabilities } = getTotals();
+  const today = new Date().toISOString().split('T')[0];
+  const id = 'snap_' + today;
+  const snap = { id, date: today, assets: Math.round(assets * 100) / 100, liabilities: Math.round(liabilities * 100) / 100 };
+  setSyncStatus('syncing');
+  try {
+    await dbUpsert('snapshots', snap);
+    const ei = state.snapshots.findIndex(s => s.date === today);
+    if (ei >= 0) state.snapshots[ei] = snap; else state.snapshots.push(snap);
+    setSyncStatus('synced');
+    showToast('✓ Snapshot saved');
+  } catch(e) { setSyncStatus('error'); showToast('⚠️ Snapshot failed: ' + e.message, 4000); }
+  activeView = 'history'; render();
+};
+
+window.app_saveSnap = async () => {
+  const date = document.getElementById('s-date').value;
+  const assets = parseFloat(document.getElementById('s-assets').value) || 0;
+  const liabilities = parseFloat(document.getElementById('s-liab').value) || 0;
+  if (!date) { showToast('Please enter a date'); return; }
+  const id = 'snap_' + date;
+  const snap = { id, date, assets, liabilities };
+  setSyncStatus('syncing');
+  try {
+    await dbUpsert('snapshots', snap);
+    const ei = state.snapshots.findIndex(s => s.date === date);
+    if (ei >= 0) state.snapshots[ei] = snap; else state.snapshots.push(snap);
+    setSyncStatus('synced');
+    showToast('✓ Data point saved');
+  } catch(e) { setSyncStatus('error'); showToast('⚠️ Save failed: ' + e.message, 4000); }
+  modal = null; render();
+};
+
+window.app_deleteSnapshot = async (id) => {
+  setSyncStatus('syncing');
+  try {
+    await dbDelete('snapshots', id);
+    state.snapshots = state.snapshots.filter(s => s.id != id);
+    setSyncStatus('synced');
+    showToast('✓ Snapshot deleted');
+  } catch(e) { setSyncStatus('error'); showToast('⚠️ Delete failed: ' + e.message, 4000); }
+  render();
+};
+
+// ─── INIT ───
+async function init() {
+  render();
+  await loadAll();
+  render();
+  await refreshPrices();
+}
+
+init();
+</script>
+</body>
+</html>
